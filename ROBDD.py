@@ -35,10 +35,17 @@ class ROBDD:
         low_formula = formula.replace(var, "0")
         high_formula = formula.replace(var, "1")
         
-        # Simplify strings for eval-friendliness (basic logic gates)
         def simplify(f):
-            try: return str(int(eval(f.replace('AND', '&').replace('OR', '|').replace('NOT', '~'))))
-            except: return f
+            # Hack for boolean logic using bitwise ops to avoid 'and'/'d' variable clashes
+            # Replace '~' with '1^' which mimics logical NOT for 0/1 values (1^0=1, 1^1=0)
+            # Revert to bitwise operators & | ^
+            f = f.replace('&', '&').replace('|', '|').replace('^', '^').replace('~', '1^')
+            try:
+                # Calculate result
+                res = eval(f)
+                return str(res)
+            except:
+                return f
 
         low_node = self.build(simplify(low_formula), remaining_vars)
         high_node = self.build(simplify(high_formula), remaining_vars)
@@ -46,6 +53,7 @@ class ROBDD:
         return self.get_node(var, low_node, high_node)
 
     def save_structure(self, filename="robdd_output.txt"):
+
         with open(filename, "w") as f:
             f.write("ROBDD Structure:\n")
             for nid in sorted(self.nodes):
@@ -57,11 +65,9 @@ class ROBDD:
                     f.write(f"  {nid}: If {var} then High->{high} else Low->{low}\n")
         print(f"ROBDD structure saved to {filename}")
 
-# Example
-# Formula: (A AND B) OR C
+# Formula: (a AND NOT c) OR (b XOR d)
 bdd = ROBDD()
-order = ["A", "B", "C"]
-# Python-friendly logic syntax
-formula = "(A & B) | C"
+order = ["a", "b", "c", "d"]
+formula = "(a & ~c) | (b ^ d)"
 root = bdd.build(formula, order)
 bdd.save_structure()
